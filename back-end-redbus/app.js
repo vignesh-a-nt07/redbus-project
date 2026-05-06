@@ -124,7 +124,7 @@ const connect = () => {
     );
   }
 
-  return mongoose.connect(connectionString);
+  return mongoose.connect(connectionString, { dbName: "redbus" });
 };
 
 

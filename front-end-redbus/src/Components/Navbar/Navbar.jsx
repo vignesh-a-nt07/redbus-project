@@ -2,7 +2,6 @@ import React from "react";
 import styles from "./Navbar.module.css";
 import Menu from "@material-ui/core/Menu";
 import MenuItem from "@material-ui/core/MenuItem";
-import { RiArrowDropDownLine } from "react-icons/ri";
 import { MdAccountCircle } from "react-icons/md";
 import { Link, useHistory } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";

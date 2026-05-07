@@ -1,0 +1,72 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'BACKEND_HOST', defaultValue: '', description: 'EC2 public IP or DNS name')
+    string(name: 'BACKEND_DOMAIN', defaultValue: '', description: 'Optional API domain, for example api.example.com')
+    string(name: 'CERTBOT_EMAIL', defaultValue: '', description: 'Email for Let’s Encrypt when BACKEND_DOMAIN is set')
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Backend Syntax Check') {
+      steps {
+        dir('back-end-redbus') {
+          sh 'node --check app.js'
+          sh 'npm ci'
+        }
+      }
+    }
+
+    stage('Create Inventory') {
+      steps {
+        sh '''
+          printf '[backend]\\nredbus-backend ansible_host=%s ansible_user=ubuntu\\n' "$BACKEND_HOST" > ansible/inventory.ini
+        '''
+      }
+    }
+
+    stage('Install Ansible Collections') {
+      steps {
+        sh 'ansible-galaxy collection install -r ansible/requirements.yml'
+      }
+    }
+
+    stage('Deploy Backend') {
+      steps {
+        withCredentials([
+          sshUserPrivateKey(credentialsId: 'redbus-ec2-ssh-key', keyFileVariable: 'SSH_KEY'),
+          string(credentialsId: 'redbus-database-uri', variable: 'DATABASE_URI'),
+          string(credentialsId: 'redbus-database-password', variable: 'DATABASE_PASSWORD'),
+          string(credentialsId: 'redbus-stripe-secret-key', variable: 'STRIPE_SECRET_KEY')
+        ]) {
+          sh '''
+            ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook ansible/playbook.yml \
+              --private-key "$SSH_KEY" \
+              -e "database_uri=${DATABASE_URI}" \
+              -e "database_password=${DATABASE_PASSWORD}" \
+              -e "stripe_secret_key=${STRIPE_SECRET_KEY}" \
+              -e "backend_domain=${BACKEND_DOMAIN}" \
+              -e "certbot_email=${CERTBOT_EMAIL}"
+          '''
+        }
+      }
+    }
+
+    stage('Smoke Test') {
+      steps {
+        script {
+          def baseUrl = params.BACKEND_DOMAIN?.trim()
+            ? "https://${params.BACKEND_DOMAIN.trim()}"
+            : "http://${params.BACKEND_HOST.trim()}"
+          sh "curl --fail --show-error --silent ${baseUrl}/health"
+        }
+      }
+    }
+  }
+}

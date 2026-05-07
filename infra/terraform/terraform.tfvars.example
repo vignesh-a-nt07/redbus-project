@@ -1,0 +1,13 @@
+aws_region          = "us-east-1"
+project_name        = "redbus"
+environment         = "prod"
+ssh_public_key_path = "~/.ssh/redbus.pub"
+ssh_allowed_cidr    = "YOUR_PUBLIC_IP/32"
+
+github_repository  = "YOUR_GITHUB_USER/redbus-project"
+github_oauth_token = "set-this-from-jenkins-or-env-not-in-git"
+amplify_branch     = "main"
+
+# Use HTTPS when connecting Amplify to EC2. Point a DNS record at backend_public_ip,
+# then run Ansible with backend_domain set to get a Let's Encrypt certificate.
+backend_url = "https://api.example.com"

@@ -17,6 +17,16 @@ const stripe = require("stripe")(stripeSecretKey);
 mongoose.pluralize(null);
 app.use(express.json());
 app.use(cors());
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    service: "redbus-backend",
+    database:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  });
+});
+
 const busRoutes = require("./routes/bus");
 const bookingRoutes = require("./routes/booking");
 const customerRoutes = require("./routes/customer");

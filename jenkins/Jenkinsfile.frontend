@@ -1,0 +1,33 @@
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'AMPLIFY_APP_ID', defaultValue: '', description: 'AWS Amplify app id from Terraform output')
+    string(name: 'AMPLIFY_BRANCH', defaultValue: 'main', description: 'Amplify branch to deploy')
+    string(name: 'BACKEND_URL', defaultValue: 'https://api.example.com', description: 'Backend URL for React build')
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Build Frontend') {
+      steps {
+        dir('front-end-redbus') {
+          sh 'npm ci'
+          sh 'REACT_APP_BACKEND_URL="${BACKEND_URL}" npm run build'
+        }
+      }
+    }
+
+    stage('Trigger Amplify Deploy') {
+      steps {
+        sh 'aws amplify start-job --app-id "${AMPLIFY_APP_ID}" --branch-name "${AMPLIFY_BRANCH}" --job-type RELEASE'
+      }
+    }
+  }
+}
+

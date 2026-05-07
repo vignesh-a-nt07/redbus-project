@@ -1,0 +1,15 @@
+app_name: redbus-backend
+app_user: redbus
+app_dir: /opt/redbus/backend
+repo_root: "{{ playbook_dir }}/.."
+backend_src: "{{ repo_root }}/back-end-redbus"
+node_major: 22
+app_port: 3020
+
+# Set backend_domain to api.example.com after DNS points to this EC2 Elastic IP.
+# Leave empty to serve the API over plain HTTP while testing directly by IP.
+backend_domain: ""
+certbot_email: ""
+
+database_name: redbus
+

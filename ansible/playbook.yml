@@ -1,0 +1,172 @@
+- name: Configure and deploy Redbus backend
+  hosts: backend
+  become: true
+
+  vars:
+    required_secret_vars:
+      - database_uri
+      - database_password
+      - stripe_secret_key
+
+  pre_tasks:
+    - name: Validate required backend secrets
+      ansible.builtin.assert:
+        that:
+          - vars[item] is defined
+          - vars[item] | length > 0
+        fail_msg: "Missing required variable: {{ item }}"
+      loop: "{{ required_secret_vars }}"
+
+  tasks:
+    - name: Install OS packages
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - nginx
+          - rsync
+          - python3-certbot-nginx
+        state: present
+        update_cache: true
+
+    - name: Install NodeSource signing key
+      ansible.builtin.apt_key:
+        url: "https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key"
+        state: present
+
+    - name: Add NodeSource repository
+      ansible.builtin.apt_repository:
+        repo: "deb https://deb.nodesource.com/node_{{ node_major }}.x nodistro main"
+        state: present
+        filename: nodesource
+        update_cache: true
+
+    - name: Install Node.js
+      ansible.builtin.apt:
+        name: nodejs
+        state: present
+
+    - name: Install PM2
+      ansible.builtin.command:
+        cmd: npm install -g pm2
+        creates: /usr/bin/pm2
+
+    - name: Create app user
+      ansible.builtin.user:
+        name: "{{ app_user }}"
+        system: true
+        home: "{{ app_dir }}"
+        shell: /bin/bash
+        create_home: false
+
+    - name: Create app directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0755"
+
+    - name: Sync backend source
+      ansible.posix.synchronize:
+        src: "{{ backend_src }}/"
+        dest: "{{ app_dir }}/"
+        delete: true
+        rsync_opts:
+          - "--exclude=node_modules"
+          - "--exclude=config.env"
+      become: false
+
+    - name: Ensure backend source ownership
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        recurse: true
+
+    - name: Render backend environment
+      ansible.builtin.template:
+        src: templates/config.env.j2
+        dest: "{{ app_dir }}/config.env"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0600"
+
+    - name: Install backend dependencies
+      ansible.builtin.command:
+        cmd: npm ci --omit=dev
+        chdir: "{{ app_dir }}"
+      become_user: "{{ app_user }}"
+      changed_when: true
+
+    - name: Render PM2 ecosystem file
+      ansible.builtin.template:
+        src: templates/ecosystem.config.js.j2
+        dest: "{{ app_dir }}/ecosystem.config.js"
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+        mode: "0644"
+
+    - name: Start or reload backend with PM2
+      ansible.builtin.command:
+        cmd: "pm2 startOrReload {{ app_dir }}/ecosystem.config.js --env production"
+      become_user: "{{ app_user }}"
+      changed_when: true
+
+    - name: Save PM2 process list
+      ansible.builtin.command:
+        cmd: pm2 save
+      become_user: "{{ app_user }}"
+      changed_when: true
+
+    - name: Install PM2 startup service
+      ansible.builtin.command:
+        cmd: "pm2 startup systemd -u {{ app_user }} --hp {{ app_dir }}"
+      register: pm2_startup
+      changed_when: "'already' not in pm2_startup.stdout | lower"
+
+    - name: Render Nginx site
+      ansible.builtin.template:
+        src: templates/nginx-redbus.conf.j2
+        dest: /etc/nginx/sites-available/redbus-backend
+        mode: "0644"
+      notify: Reload nginx
+
+    - name: Enable Nginx site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/redbus-backend
+        dest: /etc/nginx/sites-enabled/redbus-backend
+        state: link
+      notify: Reload nginx
+
+    - name: Disable default Nginx site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload nginx
+
+    - name: Validate Nginx config
+      ansible.builtin.command:
+        cmd: nginx -t
+      changed_when: false
+
+    - name: Enable HTTPS with Let's Encrypt when a backend domain is configured
+      ansible.builtin.command:
+        cmd: "certbot --nginx -d {{ backend_domain }} --non-interactive --agree-tos -m {{ certbot_email }} --redirect"
+      when:
+        - backend_domain | length > 0
+        - certbot_email | length > 0
+      changed_when: true
+
+    - name: Check backend health through localhost
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ app_port }}/health"
+        status_code: 200
+
+  handlers:
+    - name: Reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded

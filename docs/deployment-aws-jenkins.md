@@ -14,18 +14,23 @@ Target flow:
 Create these credentials in Jenkins:
 
 - `github-amplify-token`: Secret text. GitHub token that Amplify can use to read the repo.
+- `aws-access-key-id`: Secret text. AWS access key for Terraform and Amplify deploy.
+- `aws-secret-access-key`: Secret text. AWS secret key for Terraform and Amplify deploy.
 - `redbus-ec2-ssh-key`: SSH private key. Pair this with the public key passed to Terraform.
+- `redbus-ec2-public-key`: Secret text. The matching public key content for Terraform.
 - `redbus-database-uri`: Secret text. MongoDB Atlas URI.
 - `redbus-database-password`: Secret text. MongoDB Atlas password.
 - `redbus-stripe-secret-key`: Secret text. Stripe secret key.
 
 Jenkins also needs AWS credentials through the AWS CLI environment, an IAM role, or Jenkins credentials binding.
 
-The matching EC2 public key must exist on the Jenkins agent, for example:
+Generate the EC2 key pair locally:
 
 ```bash
-ssh-keygen -y -f /path/to/redbus-private-key.pem > ~/.ssh/redbus.pub
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/redbus -C "redbus-ec2"
 ```
+
+Store `~/.ssh/redbus` as `redbus-ec2-ssh-key` and `~/.ssh/redbus.pub` as `redbus-ec2-public-key`.
 
 ## Terraform
 

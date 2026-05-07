@@ -28,10 +28,10 @@ variable "public_subnet_cidr" {
   default     = "10.40.1.0/24"
 }
 
-variable "ssh_public_key_path" {
-  description = "Local path to the SSH public key Terraform imports into EC2."
+variable "ssh_public_key" {
+  description = "SSH public key content Terraform imports into EC2."
   type        = string
-  default     = "~/.ssh/redbus.pub"
+  sensitive   = true
 }
 
 variable "ssh_allowed_cidr" {

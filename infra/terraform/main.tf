@@ -113,7 +113,7 @@ resource "aws_security_group" "backend" {
 
 resource "aws_key_pair" "backend" {
   key_name   = "${local.name}-backend-key"
-  public_key = file(var.ssh_public_key_path)
+  public_key = var.ssh_public_key
 
   tags = local.tags
 }
@@ -191,4 +191,3 @@ resource "aws_amplify_branch" "frontend" {
   framework = "React"
   stage     = "PRODUCTION"
 }
-

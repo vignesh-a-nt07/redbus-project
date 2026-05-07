@@ -69,6 +69,7 @@ variable "amplify_branch" {
 }
 
 variable "backend_url" {
-  description = "Public backend URL injected into the Amplify React build. Prefer https://api.example.com."
+  description = "Backend URL injected into the React build. Leave empty to use Amplify same-origin proxy rules."
   type        = string
+  default     = ""
 }

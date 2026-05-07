@@ -161,6 +161,12 @@ resource "aws_amplify_app" "frontend" {
     REACT_APP_BACKEND_URL = var.backend_url
   }
 
+  custom_rule {
+    source = "/v1/api/<*>"
+    target = "http://${aws_eip.backend.public_ip}/v1/api/<*>"
+    status = "200"
+  }
+
   build_spec = <<-YAML
     version: 1
     frontend:

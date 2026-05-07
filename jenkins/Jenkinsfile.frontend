@@ -8,7 +8,7 @@ pipeline {
   parameters {
     string(name: 'AMPLIFY_APP_ID', defaultValue: '', description: 'AWS Amplify app id from Terraform output')
     string(name: 'AMPLIFY_BRANCH', defaultValue: 'main', description: 'Amplify branch to deploy')
-    string(name: 'BACKEND_URL', defaultValue: 'https://api.example.com', description: 'Backend URL for React build')
+    string(name: 'BACKEND_URL', defaultValue: '', description: 'Leave empty to call /v1/api through Amplify')
   }
 
   stages {
@@ -24,6 +24,20 @@ pipeline {
         dir('front-end-redbus') {
           sh 'npm ci'
           sh 'REACT_APP_BACKEND_URL="${BACKEND_URL}" npm run build'
+        }
+      }
+    }
+
+    stage('Trigger Amplify Deploy') {
+      when {
+        expression { params.AMPLIFY_APP_ID?.trim() }
+      }
+      steps {
+        withCredentials([
+          string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+        ]) {
+          sh 'aws amplify start-job --app-id "${AMPLIFY_APP_ID}" --branch-name "${AMPLIFY_BRANCH}" --job-type RELEASE'
         }
       }
     }

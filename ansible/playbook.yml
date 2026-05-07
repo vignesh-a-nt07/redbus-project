@@ -64,9 +64,10 @@
       ansible.builtin.file:
         path: "{{ app_dir }}"
         state: directory
-        owner: "{{ app_user }}"
-        group: "{{ app_user }}"
+        owner: ubuntu
+        group: ubuntu
         mode: "0755"
+        recurse: true
 
     - name: Sync backend source
       ansible.posix.synchronize:

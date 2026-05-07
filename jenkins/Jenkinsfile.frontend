@@ -12,6 +12,7 @@ pipeline {
   }
 
   stages {
+
     stage('Checkout') {
       steps {
         checkout scm
@@ -27,15 +28,5 @@ pipeline {
       }
     }
 
-    stage('Trigger Amplify Deploy') {
-      steps {
-        withCredentials([
-          string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
-          string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
-        ]) {
-          sh 'aws amplify start-job --app-id "${AMPLIFY_APP_ID}" --branch-name "${AMPLIFY_BRANCH}" --job-type RELEASE'
-        }
-      }
-    }
   }
 }

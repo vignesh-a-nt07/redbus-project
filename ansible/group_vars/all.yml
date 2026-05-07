@@ -1,5 +1,5 @@
 app_name: redbus-backend
-app_user: redbus
+app_user: ubuntu
 app_dir: /opt/redbus/backend
 repo_root: "{{ playbook_dir }}/.."
 backend_src: "{{ repo_root }}/back-end-redbus"

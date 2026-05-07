@@ -19,7 +19,7 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const history = useHistory();
 
-  const { isLoggedIn, currentCustomer } = useSelector(
+  const { currentCustomer } = useSelector(
     (state) => state.authReducer
   );
 

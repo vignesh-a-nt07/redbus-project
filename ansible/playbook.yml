@@ -52,13 +52,6 @@
         cmd: npm install -g pm2
         creates: /usr/bin/pm2
 
-    - name: Create app user
-      ansible.builtin.user:
-        name: "{{ app_user }}"
-        system: true
-        home: "{{ app_dir }}"
-        shell: /bin/bash
-        create_home: false
 
     - name: Create app directory
       ansible.builtin.file:

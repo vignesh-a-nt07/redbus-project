@@ -1,5 +1,6 @@
 locals {
-  name = "${var.project_name}-${var.environment}"
+  name            = "${var.project_name}-${var.environment}"
+  backend_api_url = var.backend_url != "" ? var.backend_url : aws_apigatewayv2_stage.backend.invoke_url
 
   tags = {
     Project     = var.project_name
@@ -150,6 +151,41 @@ resource "aws_eip_association" "backend" {
   instance_id   = aws_instance.backend.id
 }
 
+resource "aws_apigatewayv2_api" "backend" {
+  name          = "${local.name}-backend-api"
+  protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_headers = ["*"]
+    allow_methods = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+    allow_origins = ["*"]
+  }
+
+  tags = local.tags
+}
+
+resource "aws_apigatewayv2_integration" "backend" {
+  api_id                 = aws_apigatewayv2_api.backend.id
+  integration_type       = "HTTP_PROXY"
+  integration_method     = "ANY"
+  integration_uri        = "http://${aws_eip.backend.public_ip}/{proxy}"
+  payload_format_version = "1.0"
+}
+
+resource "aws_apigatewayv2_route" "backend" {
+  api_id    = aws_apigatewayv2_api.backend.id
+  route_key = "ANY /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.backend.id}"
+}
+
+resource "aws_apigatewayv2_stage" "backend" {
+  api_id      = aws_apigatewayv2_api.backend.id
+  name        = "$default"
+  auto_deploy = true
+
+  tags = local.tags
+}
+
 resource "aws_amplify_app" "frontend" {
   name         = "${local.name}-frontend"
   repository   = "https://github.com/${var.github_repository}"
@@ -158,13 +194,7 @@ resource "aws_amplify_app" "frontend" {
   platform = "WEB"
 
   environment_variables = {
-    REACT_APP_BACKEND_URL = var.backend_url
-  }
-
-  custom_rule {
-    source = "/v1/api/<*>"
-    target = "http://${aws_eip.backend.public_ip}/v1/api/<*>"
-    status = "200"
+    REACT_APP_BACKEND_URL = local.backend_api_url
   }
 
   build_spec = <<-YAML

@@ -8,6 +8,6 @@ github_repository  = "YOUR_GITHUB_USER/redbus-project"
 github_oauth_token = "set-this-from-jenkins-or-env-not-in-git"
 amplify_branch     = "main"
 
-# Leave empty to use Amplify's same-origin /v1/api proxy rule to EC2.
+# Leave empty to use the Terraform-created API Gateway HTTPS proxy.
 # Use https://api.example.com only after you configure a backend domain and TLS.
 backend_url = ""

@@ -13,6 +13,11 @@ output "backend_health_url" {
   value       = "http://${aws_eip.backend.public_ip}/health"
 }
 
+output "backend_api_gateway_url" {
+  description = "HTTPS API Gateway URL that proxies to the backend EC2 server."
+  value       = aws_apigatewayv2_stage.backend.invoke_url
+}
+
 output "amplify_app_id" {
   description = "AWS Amplify app id."
   value       = aws_amplify_app.frontend.id
@@ -22,4 +27,3 @@ output "amplify_default_domain" {
   description = "Default Amplify domain."
   value       = aws_amplify_app.frontend.default_domain
 }
-

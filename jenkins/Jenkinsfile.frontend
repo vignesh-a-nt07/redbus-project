@@ -8,7 +8,7 @@ pipeline {
   parameters {
     string(name: 'AMPLIFY_APP_ID', defaultValue: '', description: 'AWS Amplify app id from Terraform output')
     string(name: 'AMPLIFY_BRANCH', defaultValue: 'main', description: 'Amplify branch to deploy')
-    string(name: 'BACKEND_URL', defaultValue: '', description: 'Leave empty to call /v1/api through Amplify')
+    string(name: 'BACKEND_URL', defaultValue: '', description: 'Use backend_api_gateway_url from Terraform output')
   }
 
   stages {

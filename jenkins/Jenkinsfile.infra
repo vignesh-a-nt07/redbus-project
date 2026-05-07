@@ -13,7 +13,7 @@ pipeline {
     string(name: 'SSH_ALLOWED_CIDR', defaultValue: '', description: 'Your public IP in CIDR form, for example 203.0.113.10/32')
     string(name: 'GITHUB_REPOSITORY', defaultValue: '', description: 'GitHub repo in owner/name form')
     string(name: 'AMPLIFY_BRANCH', defaultValue: 'main', description: 'Branch Amplify deploys')
-    string(name: 'BACKEND_URL', defaultValue: '', description: 'Leave empty to use Amplify /v1/api proxy to EC2')
+    string(name: 'BACKEND_URL', defaultValue: '', description: 'Leave empty to use API Gateway HTTPS proxy')
   }
 
   stages {

@@ -53,6 +53,8 @@ terraform apply
 
 Or create a Jenkins Pipeline job using `jenkins/Jenkinsfile.infra`.
 
+Use `jenkins/Jenkinsfile.destroy` as a separate job for cleanup after practice.
+
 ## Backend Deploy
 
 After Terraform creates EC2, use the `backend_public_ip` output as `BACKEND_HOST` in the backend Jenkins job.

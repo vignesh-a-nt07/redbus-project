@@ -8,12 +8,12 @@ pipeline {
   }
 
   parameters {
-    choice(name: 'ACTION', choices: ['plan', 'apply'], description: 'Terraform action to run')
+    choice(name: 'ACTION', choices: ['destroy-plan', 'destroy'], description: 'Terraform destroy action to run')
     string(name: 'AWS_REGION', defaultValue: 'us-east-1', description: 'AWS region')
-    string(name: 'SSH_ALLOWED_CIDR', defaultValue: '', description: 'Your public IP in CIDR form, for example 203.0.113.10/32')
+    string(name: 'SSH_ALLOWED_CIDR', defaultValue: '', description: 'The same SSH CIDR used when infra was created')
     string(name: 'GITHUB_REPOSITORY', defaultValue: '', description: 'GitHub repo in owner/name form')
     string(name: 'AMPLIFY_BRANCH', defaultValue: 'main', description: 'Branch Amplify deploys')
-    string(name: 'BACKEND_URL', defaultValue: 'https://api.example.com', description: 'Backend URL injected into Amplify')
+    string(name: 'BACKEND_URL', defaultValue: 'http://placeholder.local', description: 'The same backend URL value used when infra was created')
   }
 
   stages {
@@ -50,7 +50,7 @@ pipeline {
       }
     }
 
-    stage('Terraform Plan') {
+    stage('Terraform Destroy Plan') {
       steps {
         dir('infra/terraform') {
           withCredentials([
@@ -60,7 +60,7 @@ pipeline {
             string(credentialsId: 'redbus-ec2-public-key', variable: 'EC2_PUBLIC_KEY')
           ]) {
             sh '''
-              terraform plan \
+              terraform plan -destroy \
                 -var "aws_region=${AWS_REGION}" \
                 -var "ssh_public_key=${EC2_PUBLIC_KEY}" \
                 -var "ssh_allowed_cidr=${SSH_ALLOWED_CIDR}" \
@@ -68,25 +68,25 @@ pipeline {
                 -var "github_oauth_token=${GITHUB_OAUTH_TOKEN}" \
                 -var "amplify_branch=${AMPLIFY_BRANCH}" \
                 -var "backend_url=${BACKEND_URL}" \
-                -out=tfplan
+                -out=tfdestroy
             '''
           }
         }
       }
     }
 
-    stage('Terraform Apply') {
+    stage('Terraform Destroy') {
       when {
-        expression { params.ACTION == 'apply' }
+        expression { params.ACTION == 'destroy' }
       }
       steps {
-        input message: 'Apply Terraform changes?'
+        input message: 'Destroy all Terraform-managed Redbus AWS resources?'
         dir('infra/terraform') {
           withCredentials([
             string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
             string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
           ]) {
-            sh 'terraform apply -auto-approve tfplan'
+            sh 'terraform apply -auto-approve tfdestroy'
           }
         }
       }
@@ -95,7 +95,7 @@ pipeline {
 
   post {
     always {
-      archiveArtifacts artifacts: 'infra/terraform/tfplan', allowEmptyArchive: true
+      archiveArtifacts artifacts: 'infra/terraform/tfdestroy', allowEmptyArchive: true
     }
   }
 }

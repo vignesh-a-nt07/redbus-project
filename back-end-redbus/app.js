@@ -102,12 +102,7 @@ const busServiceRoutes = require("./routes/busservice");
 app.use(busServiceRoutes);
 
 const connect = () => {
-  const db = mongoose.connection; // Get the mongoose connection object
-
-  // Listen to events on the mongoose connection
-  db.on("error", (error) => {
-    console.error("MongoDB connection error:", error);
-  });
+  const db = mongoose.connection;
 
   db.once("open", () => {
     console.log("MongoDB connection established.");
@@ -124,7 +119,10 @@ const connect = () => {
     );
   }
 
-  return mongoose.connect(connectionString, { dbName: "redbus" });
+  return mongoose.connect(connectionString, {
+    dbName: "redbus",
+    serverSelectionTimeoutMS: 5000,
+  });
 };
 
 
@@ -132,20 +130,29 @@ const port = process.env.PORT || 3020;
 let host = process.env.HOST;
 
 const start = async () => {
-  await connect()
-    .then(() => console.log("Database connected"))
-    .catch((err) => console.log(err));
+  try {
+    await connect();
+    console.log("Database connected");
 
-  await seedDemoRouteData();
+    await seedDemoRouteData();
 
-  const server = app.listen(port, host, () => console.log("Server is running"));
-  server.on('error', (error) => {
-    if (error.code === 'EADDRINUSE') {
-      console.error(`Port ${port} already in use. Close the existing process or choose a different port.`);
-    } else {
-      console.error('Server error:', error);
-    }
+    const server = app.listen(port, host, () => console.log("Server is running"));
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE") {
+        console.error(
+          `Port ${port} already in use. Close the existing process or choose a different port.`
+        );
+      } else {
+        console.error("Server error:", error);
+      }
+      process.exit(1);
+    });
+  } catch (error) {
+    console.error("MongoDB connection failed:", error.message);
+    console.error(
+      "Check that your current IP is allowed in MongoDB Atlas, the database user/password is correct, and your network allows TLS connections to Atlas."
+    );
     process.exit(1);
-  });
+  }
 };
 start();

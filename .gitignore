@@ -15,4 +15,3 @@ ansible/group_vars/all/vault.yml
 .env
 .env.*
 !.env.example
-
